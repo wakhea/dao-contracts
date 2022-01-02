@@ -9,7 +9,6 @@ export const CONTRACTS: Record<string, string> = {
     teller: "BondTeller",
     bondingCalculator: "OlympusBondingCalculator",
     authority: "OlympusAuthority",
-    migrator: "OlympusTokenMigrator",
     FRAX: "Frax",
     DAI: "DAI",
 };
