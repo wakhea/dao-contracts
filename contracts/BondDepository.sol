@@ -7,14 +7,14 @@ import "./libraries/FixedPoint.sol";
 import "./libraries/Address.sol";
 import "./libraries/SafeERC20.sol";
 
-import "./types/OlympusAccessControlled.sol";
+import "./types/PlutusAccessControlled.sol";
 
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IBondingCalculator.sol";
 import "./interfaces/ITeller.sol";
 import "./interfaces/IERC20Metadata.sol";
 
-contract OlympusBondDepository is OlympusAccessControlled {
+contract PlutusBondDepository is PlutusAccessControlled {
   using FixedPoint for *;
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
@@ -67,7 +67,7 @@ contract OlympusBondDepository is OlympusAccessControlled {
     address _OHM, 
     address _treasury, 
     address _authority
-  ) OlympusAccessControlled(IOlympusAuthority(_authority)) {
+  ) PlutusAccessControlled(IPlutusAuthority(_authority)) {
     require(_OHM != address(0));
     OHM = IERC20(_OHM);
     require(_treasury != address(0));

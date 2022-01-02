@@ -3,31 +3,31 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import {
-  OlympusERC20Token,
-  OlympusERC20Token__factory,
-  OlympusAuthority__factory
+  PlutusERC20Token,
+  PlutusERC20Token__factory,
+  PlutusAuthority__factory
 } from '../../types';
 
-describe("OlympusTest", () => {
+describe("PlutusTest", () => {
   let deployer: SignerWithAddress;
   let vault: SignerWithAddress;
   let bob: SignerWithAddress;
   let alice: SignerWithAddress;
-  let ohm: OlympusERC20Token;
+  let ohm: PlutusERC20Token;
 
   beforeEach(async () => {
     [deployer, vault, bob, alice] = await ethers.getSigners();
 
-    const authority = await (new OlympusAuthority__factory(deployer)).deploy(deployer.address, deployer.address, deployer.address, vault.address);
+    const authority = await (new PlutusAuthority__factory(deployer)).deploy(deployer.address, deployer.address, deployer.address, vault.address);
     await authority.deployed();
 
-    ohm = await (new OlympusERC20Token__factory(deployer)).deploy(authority.address);
+    ohm = await (new PlutusERC20Token__factory(deployer)).deploy(authority.address);
 
   });
 
   it("correctly constructs an ERC20", async () => {
-    expect(await ohm.name()).to.equal("Olympus");
-    expect(await ohm.symbol()).to.equal("OHM");
+    expect(await ohm.name()).to.equal("Plutus");
+    expect(await ohm.symbol()).to.equal("PLUS");
     expect(await ohm.decimals()).to.equal(9);
   });
 

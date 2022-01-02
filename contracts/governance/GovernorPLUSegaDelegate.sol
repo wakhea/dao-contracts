@@ -1,20 +1,20 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "./GovernorOHMegaInterfaces.sol";
+import "./GovernorPLUSegaInterfaces.sol";
 
-contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMegaEvents {
+contract GovernorPLUSegaDelegate is GovernorPLUSegaDelegateStorageV1, GovernorPLUSegaEvents {
 
     /// @notice The name of this contract
-    string public constant name = "Olympus Governor OHMega";
+    string public constant name = "Olympus Governor PLUSega";
 
     /// @notice The minimum setable proposal threshold
     /// @notice change from original contract
-    uint public constant MIN_PROPOSAL_THRESHOLDPERCENT = 5000; // 0.50% of sOHM supply : In ten-thosandaths 5000 = 0.50%
+    uint public constant MIN_PROPOSAL_THRESHOLDPERCENT = 5000; // 0.50% of sPLUS supply : In ten-thosandaths 5000 = 0.50%
 
     /// @notice The maximum setable proposal threshold
     /// @notice change from original contract
-    uint public constant MAX_PROPOSAL_THRESHOLDPERCENT = 10000; // 1.00% of sOHM circulating supply : In ten-thosandaths 10000 = 1.00%
+    uint public constant MAX_PROPOSAL_THRESHOLDPERCENT = 10000; // 1.00% of sPLUS circulating supply : In ten-thosandaths 10000 = 1.00%
 
     /// @notice The minimum setable voting period
     uint public constant MIN_VOTING_PERIOD = 5760; // About 24 hours
@@ -28,7 +28,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
     /// @notice The max setable voting delay
     uint public constant MAX_VOTING_DELAY = 40320; // About 1 week
 
-    /// @notice The percent of sOHM in support of a proposal required in order for a quorum to be reached and for a vote to succeed
+    /// @notice The percent of sPLUS in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     /// @notice change from original contract
     uint public constant quorumPercent = 40000; // In ten-thosandaths 40000 = 4.00%
 
@@ -44,26 +44,26 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
     /**
       * @notice Used to initialize the contract during delegator contructor
       * @param timelock_ The address of the Timelock
-      * @param sOHM_ The address of the sOHM token
-      * @param gOHM_ The address of the gOHM token
+      * @param sPLUS_ The address of the sPLUS token
+      * @param gPLUS_ The address of the gPLUS token
       * @param votingPeriod_ The initial voting period
       * @param votingDelay_ The initial voting delay
       * @param proposalThreshold_ The initial proposal threshold percent in ten-thousandths
       */
-    function initialize(address timelock_, address sOHM_, address gOHM_, uint votingPeriod_, uint votingDelay_, uint proposalThreshold_) public {
-        require(address(timelock) == address(0), "GovernorOHMega::initialize: can only initialize once");
-        require(msg.sender == admin, " GovernorOHMega::initialize: admin only");
-        require(timelock_ != address(0), "GovernorOHMega::initialize: invalid timelock address");
-        require(sOHM_ != address(0), "GovernorOHMega::initialize: invalid sOHM address");
-        require(gOHM_ != address(0), "GovernorOHMega::initialize: invalid gOHM address");
-        require(votingPeriod_ >= MIN_VOTING_PERIOD && votingPeriod_ <= MAX_VOTING_PERIOD, "GovernorOHMega::initialize: invalid voting period");
-        require(votingDelay_ >= MIN_VOTING_DELAY && votingDelay_ <= MAX_VOTING_DELAY, "GovernorOHMega::initialize: invalid voting delay");
-        require(proposalThreshold_ >= MIN_PROPOSAL_THRESHOLDPERCENT && proposalThreshold_ <= MAX_PROPOSAL_THRESHOLDPERCENT, "GovernorOHMega::initialize: invalid proposal threshold");
+    function initialize(address timelock_, address sPLUS_, address gPLUS_, uint votingPeriod_, uint votingDelay_, uint proposalThreshold_) public {
+        require(address(timelock) == address(0), "GovernorPLUSega::initialize: can only initialize once");
+        require(msg.sender == admin, " GovernorPLUSega::initialize: admin only");
+        require(timelock_ != address(0), "GovernorPLUSega::initialize: invalid timelock address");
+        require(sPLUS_ != address(0), "GovernorPLUSega::initialize: invalid sPLUS address");
+        require(gPLUS_ != address(0), "GovernorPLUSega::initialize: invalid gPLUS address");
+        require(votingPeriod_ >= MIN_VOTING_PERIOD && votingPeriod_ <= MAX_VOTING_PERIOD, "GovernorPLUSega::initialize: invalid voting period");
+        require(votingDelay_ >= MIN_VOTING_DELAY && votingDelay_ <= MAX_VOTING_DELAY, "GovernorPLUSega::initialize: invalid voting delay");
+        require(proposalThreshold_ >= MIN_PROPOSAL_THRESHOLDPERCENT && proposalThreshold_ <= MAX_PROPOSAL_THRESHOLDPERCENT, "GovernorPLUSega::initialize: invalid proposal threshold");
 
         timelock = TimelockInterface(timelock_);
 
-        sOHM = sOHMInterface(sOHM_);
-        gOHM = gOHMInterface(gOHM_);
+        sPLUS = sPLUSInterface(sPLUS_);
+        gPLUS = gPLUSInterface(gPLUS_);
         votingPeriod = votingPeriod_;
         votingDelay = votingDelay_;
         proposalThreshold = proposalThreshold_;
@@ -80,18 +80,18 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       */
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
         // Reject proposals before initiating as Governor
-        require(initialProposalId != 0, "GovernorOHMega::propose: Governor OHMega not active");
+        require(initialProposalId != 0, "GovernorPLUSega::propose: Governor PLUSega not active");
         /// @notice change from original contract
-        require(gOHM.getPriorVotes(msg.sender, sub256(block.number, 1)) > getVotesFromPercentOfsOHMSupply(proposalThreshold), "GovernorOHMega::propose: proposer votes below proposal threshold");
-        require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorOHMega::propose: proposal function information arity mismatch");
-        require(targets.length != 0, "GovernorOHMega::propose: must provide actions");
-        require(targets.length <= proposalMaxOperations, "GovernorOHMega::propose: too many actions");
+        require(gPLUS.getPriorVotes(msg.sender, sub256(block.number, 1)) > getVotesFromPercentOfsPLUSSupply(proposalThreshold), "GovernorPLUSega::propose: proposer votes below proposal threshold");
+        require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorPLUSega::propose: proposal function information arity mismatch");
+        require(targets.length != 0, "GovernorPLUSega::propose: must provide actions");
+        require(targets.length <= proposalMaxOperations, "GovernorPLUSega::propose: too many actions");
 
         uint latestProposalId = latestProposalIds[msg.sender];
         if (latestProposalId != 0) {
           ProposalState proposersLatestProposalState = state(latestProposalId);
-          require(proposersLatestProposalState != ProposalState.Active, "GovernorOHMega::propose: one live proposal per proposer, found an already active proposal");
-          require(proposersLatestProposalState != ProposalState.Pending, "GovernorOHMega::propose: one live proposal per proposer, found an already pending proposal");
+          require(proposersLatestProposalState != ProposalState.Active, "GovernorPLUSega::propose: one live proposal per proposer, found an already active proposal");
+          require(proposersLatestProposalState != ProposalState.Pending, "GovernorPLUSega::propose: one live proposal per proposer, found an already pending proposal");
         }
 
         uint startBlock = add256(block.number, votingDelay);
@@ -112,9 +112,9 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
             againstVotes: 0,
             abstainVotes: 0,
             /// @notice change from original contract
-            thresholdAtStart: getVotesFromPercentOfsOHMSupply(proposalThreshold),
+            thresholdAtStart: getVotesFromPercentOfsPLUSSupply(proposalThreshold),
             /// @notice change from original contract
-            votesNeeded: getVotesFromPercentOfsOHMSupply(quorumPercent),
+            votesNeeded: getVotesFromPercentOfsPLUSSupply(quorumPercent),
             canceled: false,
             executed: false
         });
@@ -131,7 +131,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @param proposalId The id of the proposal to queue
       */
     function queue(uint proposalId) external {
-        require(state(proposalId) == ProposalState.Succeeded, "GovernorOHMega::queue: proposal can only be queued if it is succeeded");
+        require(state(proposalId) == ProposalState.Succeeded, "GovernorPLUSega::queue: proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
         uint eta = add256(block.timestamp, timelock.delay());
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -142,7 +142,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
     }
 
     function queueOrRevertInternal(address target, uint value, string memory signature, bytes memory data, uint eta) internal {
-        require(!timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))), "GovernorOHMega::queueOrRevertInternal: identical proposal action already queued at eta");
+        require(!timelock.queuedTransactions(keccak256(abi.encode(target, value, signature, data, eta))), "GovernorPLUSega::queueOrRevertInternal: identical proposal action already queued at eta");
         timelock.queueTransaction(target, value, signature, data, eta);
     }
 
@@ -151,7 +151,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @param proposalId The id of the proposal to execute
       */
     function execute(uint proposalId) external payable {
-        require(state(proposalId) == ProposalState.Queued, "GovernorOHMega::execute: proposal can only be executed if it is queued");
+        require(state(proposalId) == ProposalState.Queued, "GovernorPLUSega::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -165,11 +165,11 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @param proposalId The id of the proposal to cancel
       */
     function cancel(uint proposalId) external {
-        require(state(proposalId) != ProposalState.Executed, "GovernorOHMega::cancel: cannot cancel executed proposal");
+        require(state(proposalId) != ProposalState.Executed, "GovernorPLUSega::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
         /// @notice change from original contract
-        require(msg.sender == proposal.proposer || gOHM.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposal.thresholdAtStart, "GovernorOHMega::cancel: proposer above threshold");
+        require(msg.sender == proposal.proposer || gPLUS.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposal.thresholdAtStart, "GovernorPLUSega::cancel: proposer above threshold");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -195,8 +195,8 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @return votes
       */
       /// @notice change from original contract
-    function getVotesFromPercentOfsOHMSupply(uint percent) public view returns (uint256 votes) {
-        return gOHM.balanceTo(div256(mul256(sOHM.circulatingSupply(), percent), 1e6)); 
+    function getVotesFromPercentOfsPLUSSupply(uint percent) public view returns (uint256 votes) {
+        return gPLUS.balanceTo(div256(mul256(sPLUS.circulatingSupply(), percent), 1e6)); 
     }
 
     /**
@@ -215,7 +215,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @return Proposal state
       */
     function state(uint proposalId) public view returns (ProposalState) {
-        require(proposalCount >= proposalId && proposalId > initialProposalId, "GovernorOHMega::state: invalid proposal id");
+        require(proposalCount >= proposalId && proposalId > initialProposalId, "GovernorPLUSega::state: invalid proposal id");
         Proposal storage proposal = proposals[proposalId];
         if (proposal.canceled) {
             return ProposalState.Canceled;
@@ -265,7 +265,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
         bytes32 structHash = keccak256(abi.encode(BALLOT_TYPEHASH, proposalId, support));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "GovernorOHMega::castVoteBySig: invalid signature");
+        require(signatory != address(0), "GovernorPLUSega::castVoteBySig: invalid signature");
         emit VoteCast(signatory, proposalId, support, castVoteInternal(signatory, proposalId, support), "");
     }
 
@@ -277,13 +277,13 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @return The number of votes cast
       */
     function castVoteInternal(address voter, uint proposalId, uint8 support) internal returns (uint) {
-        require(state(proposalId) == ProposalState.Active, "GovernorOHMega::castVoteInternal: voting is closed");
-        require(support <= 2, "GovernorOHMega::castVoteInternal: invalid vote type");
+        require(state(proposalId) == ProposalState.Active, "GovernorPLUSega::castVoteInternal: voting is closed");
+        require(support <= 2, "GovernorPLUSega::castVoteInternal: invalid vote type");
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[voter];
-        require(receipt.hasVoted == false, "GovernorOHMega::castVoteInternal: voter already voted");
+        require(receipt.hasVoted == false, "GovernorPLUSega::castVoteInternal: voter already voted");
         /// @notice change from original contract
-        uint votes = gOHM.getPriorVotes(voter, proposal.startBlock);
+        uint votes = gPLUS.getPriorVotes(voter, proposal.startBlock);
 
         if (support == 0) {
             proposal.againstVotes = add256(proposal.againstVotes, votes);
@@ -305,8 +305,8 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @param newVotingDelay new voting delay, in blocks
       */
     function _setVotingDelay(uint newVotingDelay) external {
-        require(msg.sender == admin, "GovernorOHMega::_setVotingDelay: admin only");
-        require(newVotingDelay >= MIN_VOTING_DELAY && newVotingDelay <= MAX_VOTING_DELAY, "GovernorOHMega::_setVotingDelay: invalid voting delay");
+        require(msg.sender == admin, "GovernorPLUSega::_setVotingDelay: admin only");
+        require(newVotingDelay >= MIN_VOTING_DELAY && newVotingDelay <= MAX_VOTING_DELAY, "GovernorPLUSega::_setVotingDelay: invalid voting delay");
         uint oldVotingDelay = votingDelay;
         votingDelay = newVotingDelay;
 
@@ -318,8 +318,8 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @param newVotingPeriod new voting period, in blocks
       */
     function _setVotingPeriod(uint newVotingPeriod) external {
-        require(msg.sender == admin, "GovernorOHMega::_setVotingPeriod: admin only");
-        require(newVotingPeriod >= MIN_VOTING_PERIOD && newVotingPeriod <= MAX_VOTING_PERIOD, "GovernorOHMega::_setVotingPeriod: invalid voting period");
+        require(msg.sender == admin, "GovernorPLUSega::_setVotingPeriod: admin only");
+        require(newVotingPeriod >= MIN_VOTING_PERIOD && newVotingPeriod <= MAX_VOTING_PERIOD, "GovernorPLUSega::_setVotingPeriod: invalid voting period");
         uint oldVotingPeriod = votingPeriod;
         votingPeriod = newVotingPeriod;
 
@@ -332,8 +332,8 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       * @param newProposalThreshold new proposal threshold
       */
     function _setProposalThreshold(uint newProposalThreshold) external {
-        require(msg.sender == admin, "GovernorOHMega::_setProposalThreshold: admin only");
-        require(newProposalThreshold >= MIN_PROPOSAL_THRESHOLDPERCENT && newProposalThreshold <= MAX_PROPOSAL_THRESHOLDPERCENT, "GovernorOHMega::_setProposalThreshold: invalid proposal threshold");
+        require(msg.sender == admin, "GovernorPLUSega::_setProposalThreshold: admin only");
+        require(newProposalThreshold >= MIN_PROPOSAL_THRESHOLDPERCENT && newProposalThreshold <= MAX_PROPOSAL_THRESHOLDPERCENT, "GovernorPLUSega::_setProposalThreshold: invalid proposal threshold");
         uint oldProposalThreshold = proposalThreshold;
         proposalThreshold = newProposalThreshold;
 
@@ -341,13 +341,13 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
     }
 
     /**
-      * @notice Initiate the GovernorOHMega contract
+      * @notice Initiate the GovernorPLUSega contract
       * @dev Admin only. Sets initial proposal id which initiates the contract, ensuring a continuous proposal id count
       * @param governorAlpha The address for the Governor to continue the proposal id count from
       */
     function _initiate(address governorAlpha) external {
-        require(msg.sender == admin, "GovernorOHMega::_initiate: admin only");
-        require(initialProposalId == 0, "GovernorOHMega::_initiate: can only initiate once");
+        require(msg.sender == admin, "GovernorPLUSega::_initiate: admin only");
+        require(initialProposalId == 0, "GovernorPLUSega::_initiate: can only initiate once");
         proposalCount = GovernorAlpha(governorAlpha).proposalCount();
         initialProposalId = proposalCount;
         timelock.acceptAdmin();
@@ -360,7 +360,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       */
     function _setPendingAdmin(address newPendingAdmin) external {
         // Check caller = admin
-        require(msg.sender == admin, "GovernorOHMega:_setPendingAdmin: admin only");
+        require(msg.sender == admin, "GovernorPLUSega:_setPendingAdmin: admin only");
 
         // Save current value, if any, for inclusion in log
         address oldPendingAdmin = pendingAdmin;
@@ -378,7 +378,7 @@ contract GovernorOHMegaDelegate is GovernorOHMegaDelegateStorageV1, GovernorOHMe
       */
     function _acceptAdmin() external {
         // Check caller is pendingAdmin and pendingAdmin ≠ address(0)
-        require(msg.sender == pendingAdmin && msg.sender != address(0), "GovernorOHMega:_acceptAdmin: pending admin only");
+        require(msg.sender == pendingAdmin && msg.sender != address(0), "GovernorPLUSega:_acceptAdmin: pending admin only");
 
         // Save current values for inclusion in log
         address oldAdmin = admin;
