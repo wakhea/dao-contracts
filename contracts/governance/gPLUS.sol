@@ -47,11 +47,9 @@ contract gPLUS is IgPLUS, ERC20 {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(address _migrator, address _sPLUS)
+    constructor(address _sPLUS)
         ERC20("Governance PLUS", "gPLUS", 18)
     {
-        require(_migrator != address(0), "Zero address: Migrator");
-        approved = _migrator;
         require(_sPLUS != address(0), "Zero address: sPLUS");
         sPLUS = IsPLUS(_sPLUS);
     }

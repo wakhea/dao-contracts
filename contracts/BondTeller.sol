@@ -64,7 +64,7 @@ contract BondTeller is ITeller, PlutusAccessControlled {
         address _depository,
         address _staking,
         address _treasury,
-        address _ohm,
+        address _plus,
         address _sPLUS,
         address _authority
     ) PlutusAccessControlled(IPlutusAuthority(_authority)) {
@@ -74,8 +74,8 @@ contract BondTeller is ITeller, PlutusAccessControlled {
         staking = IStaking(_staking);
         require(_treasury != address(0), "Zero address: Treasury");
         treasury = ITreasury(_treasury);
-        require(_ohm != address(0), "Zero address: PLUS");
-        PLUS = IERC20(_ohm);
+        require(_plus != address(0), "Zero address: PLUS");
+        PLUS = IERC20(_plus);
         require(_sPLUS != address(0), "Zero address: sPLUS");
         sPLUS = IsPLUS(_sPLUS);
     }

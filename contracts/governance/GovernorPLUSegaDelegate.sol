@@ -6,7 +6,7 @@ import "./GovernorPLUSegaInterfaces.sol";
 contract GovernorPLUSegaDelegate is GovernorPLUSegaDelegateStorageV1, GovernorPLUSegaEvents {
 
     /// @notice The name of this contract
-    string public constant name = "Olympus Governor PLUSega";
+    string public constant name = "Plutus Governor PLUSega";
 
     /// @notice The minimum setable proposal threshold
     /// @notice change from original contract
