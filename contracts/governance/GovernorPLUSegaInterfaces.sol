@@ -2,7 +2,7 @@ pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
 
-contract GovernorOHMegaEvents {
+contract GovernorPLUSegaEvents {
     /// @notice An event emitted when a new proposal is created
     event ProposalCreated(uint id, address proposer, address[] targets, uint[] values, string[] signatures, bytes[] calldatas, uint startBlock, uint endBlock, uint votesNeeded, string description);
 
@@ -42,7 +42,7 @@ contract GovernorOHMegaEvents {
     event NewAdmin(address oldAdmin, address newAdmin);
 }
 
-contract GovernorOHMegaDelegatorStorage {
+contract GovernorPLUSegaDelegatorStorage {
     /// @notice Administrator for this contract
     address public admin;
 
@@ -55,12 +55,12 @@ contract GovernorOHMegaDelegatorStorage {
 
 
 /**
- * @title Storage for Governor OHMega Delegate
- * @notice For future upgrades, do not change GovernorOHMegaDelegateStorageV1. Create a new
- * contract which implements GovernorOHMegaDelegateStorageV1 and following the naming convention
- * GovernorOHMegaDelegateStorageVX.
+ * @title Storage for Governor PLUSega Delegate
+ * @notice For future upgrades, do not change GovernorPLUSegaDelegateStorageV1. Create a new
+ * contract which implements GovernorPLUSegaDelegateStorageV1 and following the naming convention
+ * GovernorPLUSegaDelegateStorageVX.
  */
-contract GovernorOHMegaDelegateStorageV1 is GovernorOHMegaDelegatorStorage {
+contract GovernorPLUSegaDelegateStorageV1 is GovernorPLUSegaDelegatorStorage {
 
     /// @notice The delay before voting on a proposal may take place, once proposed, in blocks
     uint public votingDelay;
@@ -77,16 +77,16 @@ contract GovernorOHMegaDelegateStorageV1 is GovernorOHMegaDelegatorStorage {
     /// @notice The total number of proposals
     uint public proposalCount;
 
-    /// @notice The address of the Olympus Protocol Timelock
+    /// @notice The address of the Plutus Protocol Timelock
     TimelockInterface public timelock;
 
-    /// @notice The address of the Wrapped sOHM
+    /// @notice The address of the Wrapped sPLUS
     /// @notice change from original contract
-    gOHMInterface public gOHM;
+    gPLUSInterface public gPLUS;
 
-    /// @notice The address of the sOHM
+    /// @notice The address of the sPLUS
     /// @notice change from original contract
-    sOHMInterface public sOHM;
+    sPLUSInterface public sPLUS;
 
     /// @notice The official record of all proposals ever proposed
     mapping (uint => Proposal) public proposals;
@@ -132,11 +132,11 @@ contract GovernorOHMegaDelegateStorageV1 is GovernorOHMegaDelegatorStorage {
         /// @notice Current number of votes for abstaining for this proposal
         uint abstainVotes;
 
-        /// @notice Threshold of gOHM at start of proposal
+        /// @notice Threshold of gPLUS at start of proposal
         /// @notice change from original contract
         uint thresholdAtStart;
 
-        /// @notice Number of gOHM needed to pass vote
+        /// @notice Number of gPLUS needed to pass vote
         /// @notice change from original contract
         uint votesNeeded;
 
@@ -186,14 +186,14 @@ interface TimelockInterface {
 }
 
 /// @notice change from original contract
-interface gOHMInterface {
+interface gPLUSInterface {
     function getPriorVotes(address account, uint blockNumber) external view returns (uint);
     function balanceTo( uint _amount ) external view returns ( uint );
     function balanceFrom( uint _amount ) external view returns ( uint );
 }
 
 /// @notice change from original contract
-interface sOHMInterface {
+interface sPLUSInterface {
     function circulatingSupply() external view returns ( uint );
 }
 

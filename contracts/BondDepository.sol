@@ -7,14 +7,14 @@ import "./libraries/FixedPoint.sol";
 import "./libraries/Address.sol";
 import "./libraries/SafeERC20.sol";
 
-import "./types/OlympusAccessControlled.sol";
+import "./types/PlutusAccessControlled.sol";
 
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IBondingCalculator.sol";
 import "./interfaces/ITeller.sol";
 import "./interfaces/IERC20Metadata.sol";
 
-contract OlympusBondDepository is OlympusAccessControlled {
+contract PlutusBondDepository is PlutusAccessControlled {
   using FixedPoint for *;
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
@@ -59,17 +59,17 @@ contract OlympusBondDepository is OlympusAccessControlled {
   ITeller public teller; // handles payment
 
   ITreasury immutable treasury;
-  IERC20 immutable OHM;
+  IERC20 immutable PLUS;
 
   /* ======== CONSTRUCTOR ======== */
 
   constructor(
-    address _OHM, 
+    address _PLUS, 
     address _treasury, 
     address _authority
-  ) OlympusAccessControlled(IOlympusAuthority(_authority)) {
-    require(_OHM != address(0));
-    OHM = IERC20(_OHM);
+  ) PlutusAccessControlled(IPlutusAuthority(_authority)) {
+    require(_PLUS != address(0));
+    PLUS = IERC20(_PLUS);
     require(_treasury != address(0));
     treasury = ITreasury(_treasury);
   }
@@ -222,7 +222,7 @@ contract OlympusBondDepository is OlympusAccessControlled {
       info.capacity = info.capacity.sub(_amount);
     }
 
-    require(payout >= 10000000, "Bond too small"); // must be > 0.01 OHM ( underflow protection )
+    require(payout >= 10000000, "Bond too small"); // must be > 0.01 PLUS ( underflow protection )
     require(payout <= maxPayout(_BID), "Bond too large"); // size protection because there is no slippage
 
     info.principal.safeTransfer(address(treasury), _amount); // send payout to treasury
@@ -387,7 +387,7 @@ contract OlympusBondDepository is OlympusAccessControlled {
   // DEBT
 
   /**
-   * @notice calculate current ratio of debt to OHM supply
+   * @notice calculate current ratio of debt to PLUS supply
    * @param _BID uint
    * @return debtRatio_ uint
    */

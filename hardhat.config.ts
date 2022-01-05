@@ -24,7 +24,7 @@ const chainIds = {
 };
 
 // Ensure that we have all the environment variables we need.
-//const mnemonic: string | undefined = process.env.MNEMONIC ?? "NO_MNEMONIC";
+const mnemonic: string | undefined = process.env.MNEMONIC ?? "NO_MNEMONIC";
 const privateKey: string | undefined = process.env.PRIVATE_KEY ?? "NO_PRIVATE_KEY";
 // Make sure node is setup on Alchemy website
 const alchemyApiKey: string | undefined = process.env.ALCHEMY_API_KEY ?? "NO_ALCHEMY_API_KEY";
@@ -64,6 +64,21 @@ const config: HardhatUserConfig = {
         // Uncomment for testing.
         // rinkeby: getChainConfig("rinkeby"),
         // ropsten: getChainConfig("ropsten"),
+        localhost: {
+            url: "http://127.0.0.1:8545",
+        },
+        testnet: {
+            url: "https://data-seed-prebsc-1-s1.binance.org:8545",
+            chainId: 97,
+            gasPrice: 20000000000,
+            accounts: { mnemonic: mnemonic },
+        },
+        mainnet: {
+            url: "https://bsc-dataseed.binance.org/",
+            chainId: 56,
+            gasPrice: 20000000000,
+            accounts: { mnemonic: mnemonic },
+        },
     },
     paths: {
         artifacts: "./artifacts",
