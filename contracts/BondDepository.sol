@@ -61,6 +61,9 @@ contract PlutusBondDepository is PlutusAccessControlled {
   ITreasury immutable treasury;
   IERC20 immutable PLUS;
 
+  uint public deductionRate;
+  address[] public recipients;
+
   /* ======== CONSTRUCTOR ======== */
 
   constructor(
@@ -225,7 +228,9 @@ contract PlutusBondDepository is PlutusAccessControlled {
     require(payout >= 10000000, "Bond too small"); // must be > 0.01 PLUS ( underflow protection )
     require(payout <= maxPayout(_BID), "Bond too large"); // size protection because there is no slippage
 
-    info.principal.safeTransfer(address(treasury), _amount); // send payout to treasury
+    uint amount = deductFromBond(info, _amount);
+
+    info.principal.safeTransfer(address(treasury), amount); // send payout to treasury
 
     bonds[_BID].totalDebt = info.totalDebt.add(value); // increase total debt
 
@@ -235,9 +240,9 @@ contract PlutusBondDepository is PlutusAccessControlled {
     }
 
     // user info stored with teller
-    uint256 index = teller.newBond(_depositor, address(info.principal), _amount, payout, expiration, _feo);
+    uint256 index = teller.newBond(_depositor, address(info.principal), amount, payout, expiration, _feo);
 
-    emit CreateBond(_BID, _amount, payout, expiration);
+    emit CreateBond(_BID, amount, payout, expiration);
 
     return (payout, index);
   }
@@ -429,5 +434,24 @@ contract PlutusBondDepository is PlutusAccessControlled {
     if (decay_ > bond.totalDebt) {
       decay_ = bond.totalDebt;
     }
+  }
+
+  function setDeductionRate(uint _newRate) external onlyGovernor {
+    deductionRate = _newRate;
+  }
+
+  function addRecipient(address _newRecipient) external onlyGovernor {
+    recipients.push(_newRecipient);
+  }
+
+  function deductFromBond(Bond memory info, uint256 _amount) internal returns (uint256) {
+    uint256 cut = _amount.mul(deductionRate).div(recipients.length);
+
+    for (uint i = 0; i < recipients.length; i++) {
+      info.principal.safeTransfer(recipients[i], cut);
+      _amount = _amount - cut;
+    }
+
+    return _amount;
   }
 }
