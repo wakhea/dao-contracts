@@ -61,6 +61,8 @@ contract PlutusBondDepository is PlutusAccessControlled {
   ITreasury immutable treasury;
   IERC20 immutable PLUS;
 
+  // Basis 1000 to allow decimals
+  // 100 for 10%, 105 for 10.5%
   uint public deductionRate;
   address[] public recipients;
 
@@ -437,6 +439,7 @@ contract PlutusBondDepository is PlutusAccessControlled {
   }
 
   function setDeductionRate(uint _newRate) external onlyGovernor {
+    require(_newRate <= 1000);
     deductionRate = _newRate;
   }
 
@@ -445,7 +448,7 @@ contract PlutusBondDepository is PlutusAccessControlled {
   }
 
   function deductFromBond(Bond memory info, uint256 _amount) internal returns (uint256) {
-    uint256 cut = _amount.mul(deductionRate).div(recipients.length);
+    uint256 cut = _amount.mul(deductionRate).div(1000).div(recipients.length);
 
     for (uint i = 0; i < recipients.length; i++) {
       info.principal.safeTransfer(recipients[i], cut);
