@@ -151,7 +151,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * @param beneficiary Address receiving the tokens
      * @param weiAmount Value in wei involved in the purchase
      */
-    function _updatePurchasingState(address beneficiary, uint256 weiAmount) internal {
+    function _updatePurchasingState(address beneficiary, uint256 weiAmount) internal virtual {
         // solhint-disable-previous-line no-empty-blocks
     }
 
