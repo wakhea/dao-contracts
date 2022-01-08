@@ -6,8 +6,12 @@ import "./Crowdsale.sol";
 contract PlutusPresale is Crowdsale {
     using SafeMath for uint256;
 
+    // Timed Crowdsale
     uint256 public openingTime;
     uint256 public closingTime;
+
+    // Capped presale
+    uint256 public cap;
 
     /**
      * Event for crowdsale extending
@@ -29,7 +33,8 @@ contract PlutusPresale is Crowdsale {
         address payable _wallet,
         IERC20 _token,
         uint256 _openingTime,
-        uint256 _closingTime
+        uint256 _closingTime,
+        uint256 _cap
     ) Crowdsale(_rate, _wallet, _token) {
         // solhint-disable-next-line not-rely-on-time
         require(_openingTime >= block.timestamp, "TimedCrowdsale: opening time is before current time");
@@ -38,6 +43,9 @@ contract PlutusPresale is Crowdsale {
 
         openingTime = _openingTime;
         closingTime = _closingTime;
+
+        require(cap > 0, "CappedCrowdsale: cap is 0");
+        cap = _cap;
     }
 
     /**
@@ -58,12 +66,21 @@ contract PlutusPresale is Crowdsale {
     }
 
     /**
+     * @dev Checks whether the cap has been reached.
+     * @return Whether the cap was reached
+     */
+    function capReached() public view returns (bool) {
+        return _weiRaised >= cap;
+    }
+
+    /**
      * @dev Extend parent behavior requiring to be within contributing period.
      * @param beneficiary Token purchaser
      * @param weiAmount Amount of wei contributed
      */
     function _preValidatePurchase(address beneficiary, uint256 weiAmount) internal view override onlyWhileOpen {
         super._preValidatePurchase(beneficiary, weiAmount);
+        require(_weiRaised.add(weiAmount) <= cap, "CappedCrowdsale: cap exceeded");
     }
 
     /**
