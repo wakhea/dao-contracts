@@ -122,9 +122,26 @@ describe.only("PresaleTest", () => {
                 presale.connect(alice).buyTokens(alice.address, { value: 1000 })
             ).to.be.revertedWith("TimedCrowdsale: not open");
         });
+
+        it("should not allow time extension if not owner", async () => {
+            await expect(presale.connect(alice).extendTime(150)).to.be.revertedWith("Ownable: caller is not the owner");
+        });
+
+        it("should allow time extension if owner", async () => {
+            let newClosingTime = closingTime.add(time.duration.weeks(3));
+
+            await plus.connect(deployer).mint(presale.address, 1000000000000);
+
+            await presale.connect(deployer).extendTime(await newClosingTime.toNumber());
+            time.increase(time.duration.weeks(3));
+    
+            await presale.connect(alice).buyTokens(alice.address, { value: 1000 });
+            expect(await presale._weiRaised()).to.equal(1000);
+            expect(await presale.hasClosed()).to.be.false;
+        });
     });
 
-    describe.only("Capped crowdsale", async () => {
+    describe("Capped crowdsale", async () => {
         beforeEach(async () => {
             openingTime = (await time.latest()).add(time.duration.weeks(1));
             closingTime = openingTime.add(time.duration.weeks(1));
