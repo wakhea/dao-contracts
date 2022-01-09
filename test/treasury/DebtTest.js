@@ -94,7 +94,7 @@ describe("Treasury", async () => {
         ); // TODO
         plus = await plusFactory.deploy(auth.address);
         sPlus = await sPlusFactory.deploy();
-        gPlus = await gPlusFactory.deploy(sPlus.address, sPlus.address); // Call migrate immediately
+        gPlus = await gPlusFactory.deploy(sPlus.address); // Call migrate immediately
         staking = await stakingFactory.deploy(
             plus.address,
             sPlus.address,
