@@ -15,7 +15,7 @@ contract PlutusPresale is Crowdsale, Ownable {
     uint256 public cap;
 
     // Individually capped
-    mapping(address => uint256) public _contributions;
+    mapping(address => uint256) public contributions;
     uint256 public individualCap;
 
     /**
@@ -113,7 +113,7 @@ contract PlutusPresale is Crowdsale, Ownable {
     function _preValidatePurchase(address beneficiary, uint256 weiAmount) internal view override onlyWhileOpen {
         super._preValidatePurchase(beneficiary, weiAmount);
         require(_weiRaised.add(weiAmount) <= cap, "CappedCrowdsale: cap exceeded");
-        require(_contributions[beneficiary].add(weiAmount) <= individualCap, "CappedCrowdsale: beneficiary's cap exceeded");
+        require(contributions[beneficiary].add(weiAmount) <= individualCap, "CappedCrowdsale: beneficiary's cap exceeded");
     }
 
     /**
@@ -123,6 +123,6 @@ contract PlutusPresale is Crowdsale, Ownable {
      */
     function _updatePurchasingState(address beneficiary, uint256 weiAmount) internal override {
         super._updatePurchasingState(beneficiary, weiAmount);
-        _contributions[beneficiary] = _contributions[beneficiary].add(weiAmount);
+        contributions[beneficiary] = contributions[beneficiary].add(weiAmount);
     }
 }

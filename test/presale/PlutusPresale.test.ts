@@ -58,7 +58,7 @@ describe.only("PresaleTest", () => {
     });
 
     describe("Crowdsale", async () => {
-        it("should allow a token buy", async () => {
+        it.only("should allow a token buy", async () => {
             openingTime = (await time.latest()).add(time.duration.weeks(1));
             closingTime = openingTime.add(time.duration.weeks(1));
 
@@ -76,8 +76,14 @@ describe.only("PresaleTest", () => {
 
             time.increase(time.duration.days(10));
 
+            let provider = ethers.provider;
+            let oldBalance = await provider.getBalance(deployer.address);
+
             await presale.connect(alice).buyTokens(alice.address, { value: 1000 });
             expect(await presale._weiRaised()).to.equal(1000);
+
+            let newBalance = await provider.getBalance(deployer.address);
+            expect(newBalance.sub(oldBalance).toNumber()).to.equal(1000);
         });
     });
 
@@ -124,7 +130,9 @@ describe.only("PresaleTest", () => {
         });
 
         it("should not allow time extension if not owner", async () => {
-            await expect(presale.connect(alice).extendTime(150)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(presale.connect(alice).extendTime(150)).to.be.revertedWith(
+                "Ownable: caller is not the owner"
+            );
         });
 
         it("should allow time extension if owner", async () => {
@@ -134,7 +142,7 @@ describe.only("PresaleTest", () => {
 
             await presale.connect(deployer).extendTime(await newClosingTime.toNumber());
             time.increase(time.duration.weeks(3));
-    
+
             await presale.connect(alice).buyTokens(alice.address, { value: 1000 });
             expect(await presale._weiRaised()).to.equal(1000);
             expect(await presale.hasClosed()).to.be.false;
@@ -191,7 +199,9 @@ describe.only("PresaleTest", () => {
         });
 
         it("shouldn't allow cap update if not owner", async () => {
-            await expect(presale.connect(alice).updateCap(10000)).to.be.revertedWith("Ownable: caller is not the owner");
+            await expect(presale.connect(alice).updateCap(10000)).to.be.revertedWith(
+                "Ownable: caller is not the owner"
+            );
         });
 
         it("should allow buy if cap updated", async () => {
@@ -202,10 +212,77 @@ describe.only("PresaleTest", () => {
             await presale.connect(deployer).updateCap(2000);
 
             expect(await presale.cap()).to.equal(2000);
-            
+
             await presale.connect(alice).buyTokens(alice.address, { value: 2000 });
             expect(await presale._weiRaised()).to.equal(2000);
             expect(await presale.capReached()).to.be.true;
+        });
+    });
+
+    describe("Individually capped crowdsale", async () => {
+        beforeEach(async () => {
+            openingTime = (await time.latest()).add(time.duration.weeks(1));
+            closingTime = openingTime.add(time.duration.weeks(1));
+
+            presale = await new PlutusPresale__factory(deployer).deploy(
+                100000,
+                deployer.address,
+                plus.address,
+                await openingTime.toNumber(),
+                await closingTime.toNumber(),
+                100000000,
+                1000
+            );
+
+            time.increase(time.duration.days(10));
+
+            await plus.connect(deployer).mint(presale.address, 1000000000000);
+        });
+
+        it("should allow buy if under individual cap", async () => {
+            await presale.connect(alice).buyTokens(alice.address, { value: 600 });
+            expect(await presale._weiRaised()).to.equal(600);
+
+            await presale.connect(bob).buyTokens(bob.address, { value: 600 });
+            expect(await presale._weiRaised()).to.equal(1200);
+
+            expect(await presale.contributions(alice.address)).to.equal(600);
+            expect(await presale.contributions(bob.address)).to.equal(600);
+        });
+
+        it("should not allow buy if individual cap reached", async () => {
+            await presale.connect(alice).buyTokens(alice.address, { value: 600 });
+            expect(await presale._weiRaised()).to.equal(600);
+            expect(await presale.contributions(alice.address)).to.equal(600);
+
+            await expect(
+                presale.connect(alice).buyTokens(alice.address, { value: 600 })
+            ).to.be.revertedWith("CappedCrowdsale: beneficiary's cap exceeded");
+            expect(await presale._weiRaised()).to.equal(600);
+            expect(await presale.contributions(alice.address)).to.equal(600);
+
+            await presale.connect(bob).buyTokens(bob.address, { value: 600 });
+            expect(await presale._weiRaised()).to.equal(1200);
+        });
+
+        it("should not allow individual cap if not owner", async () => {
+            await expect(presale.connect(alice).setIndividualCap(10000)).to.be.revertedWith(
+                "Ownable: caller is not the owner"
+            );
+        });
+
+        it("should allow owner to update individual cap", async () => {
+            await expect(
+                presale.connect(alice).buyTokens(alice.address, { value: 2000 })
+            ).to.be.revertedWith("CappedCrowdsale: beneficiary's cap exceeded");
+
+            await presale.connect(deployer).setIndividualCap(2000);
+
+            expect(await presale.individualCap()).to.equal(2000);
+
+            await presale.connect(alice).buyTokens(alice.address, { value: 2000 });
+            expect(await presale._weiRaised()).to.equal(2000);
+            expect(await presale.contributions(alice.address)).to.equal(2000);
         });
     });
 });
