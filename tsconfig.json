@@ -13,6 +13,7 @@
     "./scripts",
     "./deploy",
     "./test",
-    "typechain/**/*"
+    "typechain/**/*",
+    "./node_modules/types-bn/index.d.ts"
   ]
 }
