@@ -13,7 +13,7 @@ import {
     PlutusPresale,
 } from "../../types";
 
-describe.only("PresaleTest", () => {
+describe("PresaleTest", () => {
     const START_DATE = 1893499200;
     const END_DATE = 1896177600;
     const ZERO_ADDRESS = ethers.utils.getAddress("0x0000000000000000000000000000000000000000");
@@ -58,7 +58,7 @@ describe.only("PresaleTest", () => {
     });
 
     describe("Crowdsale", async () => {
-        it.only("should allow a token buy", async () => {
+        it("should allow a token buy", async () => {
             openingTime = (await time.latest()).add(time.duration.weeks(1));
             closingTime = openingTime.add(time.duration.weeks(1));
 
