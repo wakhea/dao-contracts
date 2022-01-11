@@ -11,6 +11,7 @@ export const CONTRACTS: Record<string, string> = {
     authority: "PlutusAuthority",
     FRAX: "Frax",
     DAI: "DAI",
+    presale: "PlutusPresale"
 };
 
 // Constructor Arguments
@@ -23,5 +24,5 @@ export const FIRST_EPOCH_NUMBER = "767";
 export const FIRST_EPOCH_TIME = "1639430907";
 export const INITIAL_REWARD_RATE = "4000";
 export const INITIAL_INDEX = "45000000000";
-export const INITIAL_MINT = "6000000000000000";
+export const INITIAL_MINT = "100000000000000";
 export const BOUNTY_AMOUNT = "100000000";
