@@ -7,7 +7,7 @@ const hre = require("hardhat");
 async function main() {
     const { deployments, getNamedAccounts, ethers } = hre;
     const { deploy } = deployments;
-    const { deployer } = await getNamedAccounts();
+    const { deployer, wallet } = await getNamedAccounts();
     const signer = await ethers.provider.getSigner(deployer);
 
     const authorityDeployment = await deploy(CONTRACTS.authority, {
@@ -30,11 +30,13 @@ async function main() {
     let openTime = Date.now();
     openTime = (openTime - (openTime % 1000)) / 1000 + 100;
 
+    // 1641958128
     const presaleDeployment = await deploy(CONTRACTS.presale, {
         from: deployer,
         args: [
-            1055,
-            deployer,
+            96,
+            1000000000,
+            wallet,
             plusDeployment.address,
             openTime,
             1643069744,

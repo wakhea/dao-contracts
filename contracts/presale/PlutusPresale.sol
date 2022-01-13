@@ -35,13 +35,14 @@ contract PlutusPresale is Crowdsale, Ownable {
 
     constructor(
         uint256 _rate,
+        uint256 _rateDecimals,
         address payable _wallet,
         IERC20 _token,
         uint256 _openingTime,
         uint256 _closingTime,
         uint256 _cap,
         uint256 _individualCap
-    ) Crowdsale(_rate, _wallet, _token) {
+    ) Crowdsale(_rate, _rateDecimals, _wallet, _token) {
         // solhint-disable-next-line not-rely-on-time
         require(_openingTime >= block.timestamp, "TimedCrowdsale: opening time is before current time");
         // solhint-disable-next-line max-line-length
@@ -79,7 +80,7 @@ contract PlutusPresale is Crowdsale, Ownable {
      * @return Whether the cap was reached
      */
     function capReached() public view returns (bool) {
-        return _weiRaised >= cap;
+        return weiRaised >= cap;
     }
 
     /**
@@ -112,8 +113,11 @@ contract PlutusPresale is Crowdsale, Ownable {
      */
     function _preValidatePurchase(address beneficiary, uint256 weiAmount) internal view override onlyWhileOpen {
         super._preValidatePurchase(beneficiary, weiAmount);
-        require(_weiRaised.add(weiAmount) <= cap, "CappedCrowdsale: cap exceeded");
-        require(contributions[beneficiary].add(weiAmount) <= individualCap, "CappedCrowdsale: beneficiary's cap exceeded");
+        require(weiRaised.add(weiAmount) <= cap, "CappedCrowdsale: cap exceeded");
+        require(
+            contributions[beneficiary].add(weiAmount) <= individualCap,
+            "CappedCrowdsale: beneficiary's cap exceeded"
+        );
     }
 
     /**

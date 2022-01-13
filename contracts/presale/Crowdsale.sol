@@ -24,19 +24,21 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // The token being sold
-    IERC20 public _token;
+    IERC20 public token;
 
     // Address where funds are collected
-    address payable public _wallet;
+    address payable public wallet;
 
     // How many token units a buyer gets per wei.
     // The rate is the conversion between wei and the smallest and indivisible token unit.
     // So, if you are using a rate of 1 with a ERC20Detailed token with 3 decimals called TOK
     // 1 wei will give you 1 unit, or 0.001 TOK.
-    uint256 public _rate;
+    uint256 public rate;
+    
+    uint256 public rateDecimals;
 
     // Amount of wei raised
-    uint256 public _weiRaised;
+    uint256 public weiRaised;
 
     /**
      * Event for token purchase logging
@@ -48,21 +50,23 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
     event TokensPurchased(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
     /**
-     * @param rate Number of token units a buyer gets per wei
+     * @param _rate Number of token units a buyer gets per wei
      * @dev The rate is the conversion between wei and the smallest and indivisible
      * token unit. So, if you are using a rate of 1 with a ERC20Detailed token
      * with 3 decimals called TOK, 1 wei will give you 1 unit, or 0.001 TOK.
-     * @param wallet Address where collected funds will be forwarded to
-     * @param token Address of the token being sold
+     * @param _rateDecimals decimals for the rate
+     * @param _wallet Address where collected funds will be forwarded to
+     * @param _token Address of the token being sold
      */
-    constructor (uint256 rate, address payable wallet, IERC20 token) {
-        require(rate > 0, "Crowdsale: rate is 0");
-        require(wallet != address(0), "Crowdsale: wallet is the zero address");
-        require(address(token) != address(0), "Crowdsale: token is the zero address");
+    constructor (uint256 _rate, uint256 _rateDecimals, address payable _wallet, IERC20 _token) {
+        require(_rate > 0, "Crowdsale: rate is 0");
+        require(_wallet != address(0), "Crowdsale: wallet is the zero address");
+        require(address(_token) != address(0), "Crowdsale: token is the zero address");
 
-        _rate = rate;
-        _wallet = wallet;
-        _token = token;
+        rate = _rate;
+        rateDecimals = _rateDecimals;
+        wallet = _wallet;
+        token = _token;
     }
 
     /**
@@ -89,7 +93,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
         uint256 tokens = _getTokenAmount(weiAmount);
 
         // update state
-        _weiRaised = _weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(weiAmount);
 
         _processPurchase(beneficiary, tokens);
         emit TokensPurchased(_msgSender(), beneficiary, weiAmount, tokens);
@@ -132,7 +136,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * @param tokenAmount Number of tokens to be emitted
      */
     function _deliverTokens(address beneficiary, uint256 tokenAmount) internal {
-        _token.safeTransfer(beneficiary, tokenAmount);
+        token.safeTransfer(beneficiary, tokenAmount);
     }
 
     /**
@@ -161,13 +165,13 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * @return Number of tokens that can be purchased with the specified _weiAmount
      */
     function _getTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-        return weiAmount.mul(_rate);
+        return weiAmount.mul(rate).div(rateDecimals);
     }
 
     /**
      * @dev Determines how ETH is stored/forwarded on purchases.
      */
     function _forwardFunds() internal {
-        _wallet.transfer(msg.value);
+        wallet.transfer(msg.value);
     }
 }

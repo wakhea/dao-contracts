@@ -21,6 +21,8 @@ const chainIds = {
     mainnet: 1,
     rinkeby: 4,
     ropsten: 3,
+    testnet: 97,
+    bsc: 56
 };
 
 // Ensure that we have all the environment variables we need.
@@ -69,13 +71,13 @@ const config: HardhatUserConfig = {
         },
         testnet: {
             url: "https://data-seed-prebsc-1-s1.binance.org:8545",
-            chainId: 97,
+            chainId: chainIds.testnet,
             gasPrice: 20000000000,
             accounts: { mnemonic: mnemonic },
         },
         mainnet: {
             url: "https://bsc-dataseed.binance.org/",
-            chainId: 56,
+            chainId: chainIds.bsc,
             gasPrice: 20000000000,
             accounts: { mnemonic: mnemonic },
         },
@@ -122,6 +124,10 @@ const config: HardhatUserConfig = {
             // mainnet
             1: "0x245cc372C84B3645Bf0Ffe6538620B04a217988B",
         },
+        wallet: {
+            97: "0xA1D0678e46288803e017d27ccE478Cc34025a099",
+            default: 1
+        }
     },
     typechain: {
         outDir: "types",
@@ -130,6 +136,7 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: process.env.ETHERSCAN_API_KEY,
     },
+    
 };
 
 export default config;
