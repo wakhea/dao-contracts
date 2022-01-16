@@ -7,10 +7,10 @@ const hre = require("hardhat");
 async function main() {
     const { deployments, getNamedAccounts, ethers } = hre;
     const { deploy } = deployments;
-    const { deployer } = await getNamedAccounts();
+    const { deployer, wallet } = await getNamedAccounts();
     const signer = await ethers.provider.getSigner(deployer);
 
-    const authorityDeployment = await deploy(CONTRACTS.authority, {
+    /*const authorityDeployment = await deploy(CONTRACTS.authority, {
         from: deployer,
         args: [deployer, deployer, deployer, deployer],
         log: true,
@@ -25,29 +25,31 @@ async function main() {
         log: true,
         skipIfAlreadyDeployed: true,
     });
-    console.log("PLUS token deployed at: " + plusDeployment.address);
+    console.log("PLUS token deployed at: " + plusDeployment.address);*/
 
     let openTime = Date.now();
     openTime = (openTime - (openTime % 1000)) / 1000 + 100;
 
+    // 1641958128
     const presaleDeployment = await deploy(CONTRACTS.presale, {
         from: deployer,
         args: [
-            1055,
-            deployer,
-            plusDeployment.address,
+            100,
+            1000000000,
+            wallet,
+            "0x1D7f64e2Fb2Be8c1eac6914f49Ca4E897F5d7539",
             openTime,
             1643069744,
-            1000000000000000,
-            1000000000000,
+            "10000000000000000000",
+            "2000000000000000000",
         ],
         log: true,
-        skipIfAlreadyDeployed: true,
+        skipIfAlreadyDeployed: false,
     });
     console.log("Presale deployed at: " + presaleDeployment.address);
 
 
-    const plus = PlutusERC20Token__factory.connect(plusDeployment.address, signer);
+    const plus = PlutusERC20Token__factory.connect("0x1D7f64e2Fb2Be8c1eac6914f49Ca4E897F5d7539", signer);
 
     await waitFor(plus.mint(presaleDeployment.address, INITIAL_MINT));
 
