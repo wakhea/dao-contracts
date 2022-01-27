@@ -2,6 +2,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import BN from "bn.js";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { INITIAL_MINT } from "../../scripts/constants";
 
 const time = require("../utils/advancement.js");
 
@@ -14,6 +15,7 @@ import {
 } from "../../types";
 
 describe("PresaleTest", () => {
+    const LARGE_APPROVAL = "100000000000000000000000000000000";
     const START_DATE = 1893499200;
     const END_DATE = 1896177600;
 
@@ -21,6 +23,7 @@ describe("PresaleTest", () => {
     let bob: SignerWithAddress;
     let alice: SignerWithAddress;
     let plus: PlutusERC20Token;
+    let busd: any;
     let presale: PlutusPresale;
 
     let openingTime: BN;
@@ -37,6 +40,14 @@ describe("PresaleTest", () => {
         );
         await authority.deployed();
 
+        // Using DAI since factory already exists
+        let busdFactory = await ethers.getContractFactory("DAI");
+
+        busd = await busdFactory.deploy(0);
+        await busd.mint(deployer.address, INITIAL_MINT);
+        await busd.mint(alice.address, INITIAL_MINT);
+        await busd.mint(bob.address, INITIAL_MINT);
+
         plus = await new PlutusERC20Token__factory(deployer).deploy(authority.address);
     });
 
@@ -47,6 +58,7 @@ describe("PresaleTest", () => {
                 1,
                 deployer.address,
                 plus.address,
+                busd.address,
                 START_DATE,
                 END_DATE,
                 10000000000000,
@@ -67,26 +79,27 @@ describe("PresaleTest", () => {
                 1000000000,
                 deployer.address,
                 plus.address,
+                busd.address,
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 100000000000000,
                 100000000000000
             );
-            
+
+            await busd.connect(alice).approve(presale.address, LARGE_APPROVAL);
+
             await plus.connect(deployer).mint(presale.address, 1000000000000);
-            
+
             time.increase(time.duration.days(10));
 
             let amount = 100000000000000;
 
-            let provider = ethers.provider;
-            let oldBalance = await provider.getBalance(deployer.address);
-
-            await presale.connect(alice).buyTokens(alice.address, { value: amount });
+            let oldBalance = await busd.balanceOf(alice.address);
+            await presale.connect(alice).buyTokens(amount, alice.address);
             expect(await presale.weiRaised()).to.equal(amount);
 
-            let newBalance = await provider.getBalance(deployer.address);
-            expect(newBalance.sub(oldBalance).toNumber()).to.equal(amount);
+            let newBalance = await busd.balanceOf(alice.address);
+            expect(oldBalance.sub(newBalance).toNumber()).to.equal(amount);
 
             expect(await (await plus.balanceOf(alice.address)).toString()).to.equal("9600000");
         });
@@ -102,6 +115,7 @@ describe("PresaleTest", () => {
                 1,
                 deployer.address,
                 plus.address,
+                busd.address,
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 10000000000000,
@@ -111,7 +125,7 @@ describe("PresaleTest", () => {
 
         it("shouldn't allow buy before open time", async () => {
             expect(await presale.isOpen()).to.be.false;
-            await expect(presale.connect(alice).buyTokens(alice.address)).to.be.revertedWith(
+            await expect(presale.connect(alice).buyTokens(10, alice.address)).to.be.revertedWith(
                 "TimedCrowdsale: not open"
             );
         });
@@ -122,7 +136,9 @@ describe("PresaleTest", () => {
 
             expect(await presale.isOpen()).to.be.true;
 
-            await presale.connect(alice).buyTokens(alice.address, { value: 1000 });
+            await busd.connect(alice).approve(presale.address, 1000);
+
+            await presale.connect(alice).buyTokens(1000, alice.address);
             expect(await presale.weiRaised()).to.equal(1000);
         });
 
@@ -130,9 +146,9 @@ describe("PresaleTest", () => {
             time.increase(time.duration.weeks(3));
 
             expect(await presale.isOpen()).to.be.false;
-            await expect(
-                presale.connect(alice).buyTokens(alice.address, { value: 1000 })
-            ).to.be.revertedWith("TimedCrowdsale: not open");
+            await expect(presale.connect(alice).buyTokens(1000, alice.address)).to.be.revertedWith(
+                "TimedCrowdsale: not open"
+            );
         });
 
         it("should not allow time extension if not owner", async () => {
@@ -143,13 +159,14 @@ describe("PresaleTest", () => {
 
         it("should allow time extension if owner", async () => {
             let newClosingTime = closingTime.add(time.duration.weeks(3));
-
+            
             await plus.connect(deployer).mint(presale.address, 1000000000000);
+            await busd.connect(alice).approve(presale.address, 1000);
 
             await presale.connect(deployer).extendTime(await newClosingTime.toNumber());
             time.increase(time.duration.weeks(3));
 
-            await presale.connect(alice).buyTokens(alice.address, { value: 1000 });
+            await presale.connect(alice).buyTokens(1000, alice.address);
             expect(await presale.weiRaised()).to.equal(1000);
             expect(await presale.hasClosed()).to.be.false;
         });
@@ -165,6 +182,7 @@ describe("PresaleTest", () => {
                 1,
                 deployer.address,
                 plus.address,
+                busd.address,
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 1000,
@@ -179,30 +197,35 @@ describe("PresaleTest", () => {
             // Check if open
             expect(await presale.isOpen()).to.be.true;
 
-            await presale.connect(alice).buyTokens(alice.address, { value: 100 });
+            await busd.connect(alice).approve(presale.address, 100);
+            await busd.connect(bob).approve(presale.address, 100);
+
+            await presale.connect(alice).buyTokens(100, alice.address);
             expect(await presale.weiRaised()).to.equal(100);
 
-            await presale.connect(bob).buyTokens(bob.address, { value: 100 });
+            await presale.connect(bob).buyTokens(100, bob.address);
             expect(await presale.weiRaised()).to.equal(200);
         });
 
         it("shouldn't allow buy if more than cap", async () => {
             expect(await presale.isOpen()).to.be.true;
 
-            await expect(
-                presale.connect(alice).buyTokens(alice.address, { value: 1001 })
-            ).to.be.revertedWith("CappedCrowdsale: cap exceeded");
+            await expect(presale.connect(alice).buyTokens(1001, alice.address)).to.be.revertedWith(
+                "CappedCrowdsale: cap exceeded"
+            );
         });
 
         it("shouldn't allow buy if cap reached", async () => {
             expect(await presale.isOpen()).to.be.true;
 
-            await presale.connect(alice).buyTokens(alice.address, { value: 900 });
+            await busd.connect(alice).approve(presale.address, 900);
+
+            await presale.connect(alice).buyTokens(900, alice.address);
             expect(await presale.weiRaised()).to.equal(900);
 
-            await expect(
-                presale.connect(alice).buyTokens(alice.address, { value: 1001 })
-            ).to.be.revertedWith("CappedCrowdsale: cap exceeded");
+            await expect(presale.connect(alice).buyTokens(1001, alice.address)).to.be.revertedWith(
+                "CappedCrowdsale: cap exceeded"
+            );
         });
 
         it("shouldn't allow cap update if not owner", async () => {
@@ -212,15 +235,17 @@ describe("PresaleTest", () => {
         });
 
         it("should allow buy if cap updated", async () => {
-            await expect(
-                presale.connect(alice).buyTokens(alice.address, { value: 2000 })
-            ).to.be.revertedWith("CappedCrowdsale: cap exceeded");
+            await expect(presale.connect(alice).buyTokens(2000, alice.address)).to.be.revertedWith(
+                "CappedCrowdsale: cap exceeded"
+            );
+
+            await busd.connect(alice).approve(presale.address, 2000);
 
             await presale.connect(deployer).updateCap(2000);
-
+            
             expect(await presale.cap()).to.equal(2000);
 
-            await presale.connect(alice).buyTokens(alice.address, { value: 2000 });
+            await presale.connect(alice).buyTokens(2000, alice.address);
             expect(await presale.weiRaised()).to.equal(2000);
             expect(await presale.capReached()).to.be.true;
         });
@@ -236,6 +261,7 @@ describe("PresaleTest", () => {
                 1,
                 deployer.address,
                 plus.address,
+                busd.address,
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 100000000,
@@ -243,15 +269,18 @@ describe("PresaleTest", () => {
             );
 
             time.increase(time.duration.days(10));
-
+            
             await plus.connect(deployer).mint(presale.address, 1000000000000);
+            await busd.connect(alice).approve(presale.address, 2000);
+            await busd.connect(bob).approve(presale.address, 2000);
         });
 
         it("should allow buy if under individual cap", async () => {
-            await presale.connect(alice).buyTokens(alice.address, { value: 600 });
+
+            await presale.connect(alice).buyTokens(600, alice.address);
             expect(await presale.weiRaised()).to.equal(600);
 
-            await presale.connect(bob).buyTokens(bob.address, { value: 600 });
+            await presale.connect(bob).buyTokens(600, bob.address);
             expect(await presale.weiRaised()).to.equal(1200);
 
             expect(await presale.contributions(alice.address)).to.equal(600);
@@ -259,17 +288,17 @@ describe("PresaleTest", () => {
         });
 
         it("should not allow buy if individual cap reached", async () => {
-            await presale.connect(alice).buyTokens(alice.address, { value: 600 });
+            await presale.connect(alice).buyTokens(600, alice.address);
             expect(await presale.weiRaised()).to.equal(600);
             expect(await presale.contributions(alice.address)).to.equal(600);
 
-            await expect(
-                presale.connect(alice).buyTokens(alice.address, { value: 600 })
-            ).to.be.revertedWith("CappedCrowdsale: beneficiary's cap exceeded");
+            await expect(presale.connect(alice).buyTokens(600, alice.address)).to.be.revertedWith(
+                "CappedCrowdsale: beneficiary's cap exceeded"
+            );
             expect(await presale.weiRaised()).to.equal(600);
             expect(await presale.contributions(alice.address)).to.equal(600);
 
-            await presale.connect(bob).buyTokens(bob.address, { value: 600 });
+            await presale.connect(bob).buyTokens(600, bob.address);
             expect(await presale.weiRaised()).to.equal(1200);
         });
 
@@ -280,15 +309,15 @@ describe("PresaleTest", () => {
         });
 
         it("should allow owner to update individual cap", async () => {
-            await expect(
-                presale.connect(alice).buyTokens(alice.address, { value: 2000 })
-            ).to.be.revertedWith("CappedCrowdsale: beneficiary's cap exceeded");
+            await expect(presale.connect(alice).buyTokens(2000, alice.address)).to.be.revertedWith(
+                "CappedCrowdsale: beneficiary's cap exceeded"
+            );
 
             await presale.connect(deployer).setIndividualCap(2000);
 
             expect(await presale.individualCap()).to.equal(2000);
 
-            await presale.connect(alice).buyTokens(alice.address, { value: 2000 });
+            await presale.connect(alice).buyTokens(2000, alice.address);
             expect(await presale.weiRaised()).to.equal(2000);
             expect(await presale.contributions(alice.address)).to.equal(2000);
         });
