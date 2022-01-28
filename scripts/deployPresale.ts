@@ -10,7 +10,7 @@ async function main() {
     const { deployer, wallet } = await getNamedAccounts();
     const signer = await ethers.provider.getSigner(deployer);
 
-    /*const authorityDeployment = await deploy(CONTRACTS.authority, {
+const authorityDeployment = await deploy(CONTRACTS.authority, {
         from: deployer,
         args: [deployer, deployer, deployer, deployer],
         log: true,
@@ -19,27 +19,27 @@ async function main() {
     console.log("Authority deployed at: " + authorityDeployment.address);
 
 
-    const plusDeployment = await deploy(CONTRACTS.plus, {
+    /*const plusDeployment = await deploy(CONTRACTS.plus, {
         from: deployer,
         args: [authorityDeployment.address],
         log: true,
         skipIfAlreadyDeployed: true,
     });
-    console.log("PLUS token deployed at: " + plusDeployment.address);*/
-
+    console.log("PLUS token deployed at: " + plusDeployment.address);
+*/
     let openTime = Date.now();
     openTime = (openTime - (openTime % 1000)) / 1000 + 100;
-
     // 1641958128
     const presaleDeployment = await deploy(CONTRACTS.presale, {
         from: deployer,
         args: [
-            100,
-            1000000000,
+            2,
+            10000000000,
             wallet,
             "0x1D7f64e2Fb2Be8c1eac6914f49Ca4E897F5d7539",
+            "0xeD24FC36d5Ee211Ea25A80239Fb8C4Cfd80f12Ee",
             openTime,
-            1643069744,
+            1643583940,
             "10000000000000000000",
             "2000000000000000000",
         ],

@@ -38,11 +38,12 @@ contract PlutusPresale is Crowdsale, Ownable {
         uint256 _rateDecimals,
         address payable _wallet,
         IERC20 _token,
+        IERC20 _busd,
         uint256 _openingTime,
         uint256 _closingTime,
         uint256 _cap,
         uint256 _individualCap
-    ) Crowdsale(_rate, _rateDecimals, _wallet, _token) {
+    ) Crowdsale(_rate, _rateDecimals, _wallet, _token, _busd) {
         // solhint-disable-next-line not-rely-on-time
         require(_openingTime >= block.timestamp, "TimedCrowdsale: opening time is before current time");
         // solhint-disable-next-line max-line-length

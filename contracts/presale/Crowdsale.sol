@@ -26,6 +26,9 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
     // The token being sold
     IERC20 public token;
 
+    // BUSD token address
+    IERC20 public busd;
+
     // Address where funds are collected
     address payable public wallet;
 
@@ -39,6 +42,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
 
     // Amount of wei raised
     uint256 public weiRaised;
+
 
     /**
      * Event for token purchase logging
@@ -58,25 +62,17 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * @param _wallet Address where collected funds will be forwarded to
      * @param _token Address of the token being sold
      */
-    constructor (uint256 _rate, uint256 _rateDecimals, address payable _wallet, IERC20 _token) {
+    constructor (uint256 _rate, uint256 _rateDecimals, address payable _wallet, IERC20 _token, IERC20 _busd) {
         require(_rate > 0, "Crowdsale: rate is 0");
         require(_wallet != address(0), "Crowdsale: wallet is the zero address");
         require(address(_token) != address(0), "Crowdsale: token is the zero address");
+        require(address(_busd) != address(0), "Crowdsale: busd is the zero address");
 
         rate = _rate;
         rateDecimals = _rateDecimals;
         wallet = _wallet;
         token = _token;
-    }
-
-    /**
-     * @dev fallback function ***DO NOT OVERRIDE***
-     * Note that other contracts will transfer funds with a base gas stipend
-     * of 2300, which is not enough to call buyTokens. Consider calling
-     * buyTokens directly when purchasing tokens from a contract.
-     */
-    receive () external payable {
-        buyTokens(_msgSender());
+        busd = _busd;
     }
 
     /**
@@ -85,23 +81,22 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * another `nonReentrant` function.
      * @param beneficiary Recipient of the token purchase
      */
-    function buyTokens(address beneficiary) public nonReentrant payable {
-        uint256 weiAmount = msg.value;
-        _preValidatePurchase(beneficiary, weiAmount);
+    function buyTokens(uint _amount, address beneficiary) public nonReentrant {
+        _preValidatePurchase(beneficiary, _amount);
 
         // calculate token amount to be created
-        uint256 tokens = _getTokenAmount(weiAmount);
+        uint256 tokens = _getTokenAmount(_amount);
 
         // update state
-        weiRaised = weiRaised.add(weiAmount);
+        weiRaised = weiRaised.add(_amount);
 
         _processPurchase(beneficiary, tokens);
-        emit TokensPurchased(_msgSender(), beneficiary, weiAmount, tokens);
+        emit TokensPurchased(_msgSender(), beneficiary, _amount, tokens);
 
-        _updatePurchasingState(beneficiary, weiAmount);
+        _updatePurchasingState(beneficiary, _amount);
 
-        _forwardFunds();
-        _postValidatePurchase(beneficiary, weiAmount);
+        _forwardFunds(_amount, beneficiary);
+        _postValidatePurchase(beneficiary, _amount);
     }
 
     /**
@@ -171,7 +166,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
     /**
      * @dev Determines how ETH is stored/forwarded on purchases.
      */
-    function _forwardFunds() internal {
-        wallet.transfer(msg.value);
+    function _forwardFunds(uint amount, address beneficiary) internal {
+        busd.transferFrom(beneficiary, wallet, amount);
     }
 }
