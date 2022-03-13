@@ -21,7 +21,7 @@ contract PlutusPresale is Crowdsale, Ownable {
     // Individually capped
     struct PreBuy {
         uint256 weiAmount;
-        uint256 plusAmount;
+        uint256 plusAmountClaimed;
     }
 
     mapping(address => PreBuy) public preBuys;
@@ -171,8 +171,8 @@ contract PlutusPresale is Crowdsale, Ownable {
         uint256 totalPlusToClaim = _getTokenAmount(preBuys[beneficiary].weiAmount).mul(percentReleased).div(
             VESTING_TIME_DECIMALS
         );
-        uint256 plusToClaim = totalPlusToClaim.sub(preBuys[beneficiary].plusAmount);
-        preBuys[beneficiary].plusAmount = preBuys[beneficiary].plusAmount.add(plusToClaim);
+        uint256 plusToClaim = totalPlusToClaim.sub(preBuys[beneficiary].plusAmountClaimed);
+        preBuys[beneficiary].plusAmountClaimed = preBuys[beneficiary].plusAmountClaimed.add(plusToClaim);
 
         token.safeTransfer(beneficiary, plusToClaim);
     }

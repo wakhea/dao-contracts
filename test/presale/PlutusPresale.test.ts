@@ -14,7 +14,7 @@ import {
     PlutusPresale,
 } from "../../types";
 
-describe.only("PresaleTest", () => {
+describe("PresaleTest", () => {
     const LARGE_APPROVAL = "100000000000000000000000000000000";
     const START_DATE = 1893499200;
     const END_DATE = 1896177600;
@@ -325,5 +325,106 @@ describe.only("PresaleTest", () => {
             expect(await presale.weiRaised()).to.equal(2000);
             expect(await (await presale.preBuys(alice.address)).weiAmount).to.equal(2000);
         });
+    });
+
+    describe("Vesting time crowdsale", async () => {
+        beforeEach(async () => {
+            openingTime = (await time.latest()).add(time.duration.weeks(1));
+            closingTime = openingTime.add(time.duration.weeks(1));
+
+            presale = await new PlutusPresale__factory(deployer).deploy(
+                1,
+                1,
+                deployer.address,
+                plus.address,
+                busd.address,
+                await openingTime.toNumber(),
+                await closingTime.toNumber(),
+                100000000,
+                100000000,
+                345600
+            );
+
+            time.increase(time.duration.days(10));
+            
+            await plus.connect(deployer).mint(presale.address, 100000);
+            await busd.connect(alice).approve(presale.address, 2000);
+            await busd.connect(bob).approve(presale.address, 2000);
+        });
+
+        it("should not allow redemption before if presale is open", async() => {
+            await expect(presale.connect(alice).redeemPlus(alice.address)).to.be.revertedWith(
+                "TimedCrowdsale: not closed"
+            );
+        });
+
+        it("should not allow to retrieve excess PLUS if presale is closed", async() => {
+            await expect(presale.connect(alice).retreiveExcessPlus()).to.be.revertedWith(
+                "TimedCrowdsale: not closed"
+            );
+        })
+
+        it("should not allow to retrieve excess PLUS if not owner", async() => {
+            time.increase(time.duration.days(5));
+
+            await expect(presale.connect(alice).retreiveExcessPlus()).to.be.revertedWith(
+                "Ownable: caller is not the owner"
+            );
+        });
+
+        it("should redeem Plus after presale closing", async() => {
+            // Buy token
+            await busd.connect(alice).approve(presale.address, LARGE_APPROVAL);
+
+            let amount = 1000;
+
+            let oldBalance = await busd.balanceOf(alice.address);
+            await presale.connect(alice).buyTokens(amount, alice.address);
+            expect(await presale.weiRaised()).to.equal(amount);
+
+            let newBalance = await busd.balanceOf(alice.address);
+            expect(oldBalance.sub(newBalance).toNumber()).to.equal(amount);
+
+            // 1 day after close
+            await time.increase(time.duration.days(5));
+            
+            expect(await (await presale.getPercentReleased()).toNumber()).to.be.gte(2500000).and.lte(2501000);
+            expect(await (await presale.preBuys(alice.address)).plusAmountClaimed).to.equal(0);            
+            
+            await presale.connect(alice).redeemPlus(alice.address);
+
+            let plusAmountClaimed = (await (await presale.preBuys(alice.address)).plusAmountClaimed);
+            expect(await plusAmountClaimed.toNumber()).to.equal(250);
+            expect(await plus.balanceOf(alice.address)).to.equal(250);
+            
+            // After vesting period
+            await time.increase(time.duration.days(5));
+
+            await presale.connect(alice).redeemPlus(alice.address);
+
+            plusAmountClaimed = (await (await presale.preBuys(alice.address)).plusAmountClaimed);
+            expect(await plus.balanceOf(alice.address)).to.equal(1000);
+            expect(await plusAmountClaimed.toNumber()).to.equal(1000);
+        });
+
+        it("should allow owner to retreive all the Plus if no sale", async() => {
+            await time.increase(time.duration.days(5));
+
+            await presale.connect(deployer).retreiveExcessPlus();
+
+            expect(await (await plus.balanceOf(deployer.address)).toString()).to.eq("100000");
+        })
+
+        it("should allow owner to retreive only the unclaimed Plus if token has been sold", async() => {
+            // Buy token
+            await busd.connect(alice).approve(presale.address, LARGE_APPROVAL);
+            await presale.connect(alice).buyTokens(10000, alice.address);
+
+            await time.increase(time.duration.days(5));
+
+            await presale.connect(deployer).retreiveExcessPlus();
+
+            expect(await (await plus.balanceOf(deployer.address)).toString()).to.eq("90000");
+        })
     });
 });
