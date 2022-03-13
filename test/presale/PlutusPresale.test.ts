@@ -14,7 +14,7 @@ import {
     PlutusPresale,
 } from "../../types";
 
-describe("PresaleTest", () => {
+describe.only("PresaleTest", () => {
     const LARGE_APPROVAL = "100000000000000000000000000000000";
     const START_DATE = 1893499200;
     const END_DATE = 1896177600;
@@ -62,7 +62,8 @@ describe("PresaleTest", () => {
                 START_DATE,
                 END_DATE,
                 10000000000000,
-                1000000000000
+                1000000000000,
+                345600
             );
 
             expect(await presale.token()).to.equal(plus.address);
@@ -83,7 +84,8 @@ describe("PresaleTest", () => {
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 100000000000000,
-                100000000000000
+                100000000000000,
+                345600
             );
 
             await busd.connect(alice).approve(presale.address, LARGE_APPROVAL);
@@ -100,8 +102,6 @@ describe("PresaleTest", () => {
 
             let newBalance = await busd.balanceOf(alice.address);
             expect(oldBalance.sub(newBalance).toNumber()).to.equal(amount);
-
-            expect(await (await plus.balanceOf(alice.address)).toString()).to.equal("9600000");
         });
     });
 
@@ -119,7 +119,8 @@ describe("PresaleTest", () => {
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 10000000000000,
-                1000000000000
+                1000000000000,
+                345600
             );
         });
 
@@ -186,7 +187,8 @@ describe("PresaleTest", () => {
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 1000,
-                10000
+                10000, 
+                345600
             );
             time.increase(time.duration.days(10));
 
@@ -265,7 +267,8 @@ describe("PresaleTest", () => {
                 await openingTime.toNumber(),
                 await closingTime.toNumber(),
                 100000000,
-                1000
+                1000,
+                345600
             );
 
             time.increase(time.duration.days(10));
@@ -283,20 +286,20 @@ describe("PresaleTest", () => {
             await presale.connect(bob).buyTokens(600, bob.address);
             expect(await presale.weiRaised()).to.equal(1200);
 
-            expect(await presale.contributions(alice.address)).to.equal(600);
-            expect(await presale.contributions(bob.address)).to.equal(600);
+            expect(await (await presale.preBuys(alice.address)).weiAmount).to.equal(600);
+            expect(await (await presale.preBuys(bob.address)).weiAmount).to.equal(600);
         });
 
         it("should not allow buy if individual cap reached", async () => {
             await presale.connect(alice).buyTokens(600, alice.address);
             expect(await presale.weiRaised()).to.equal(600);
-            expect(await presale.contributions(alice.address)).to.equal(600);
+            expect(await (await presale.preBuys(alice.address)).weiAmount).to.equal(600);
 
             await expect(presale.connect(alice).buyTokens(600, alice.address)).to.be.revertedWith(
                 "CappedCrowdsale: beneficiary's cap exceeded"
             );
             expect(await presale.weiRaised()).to.equal(600);
-            expect(await presale.contributions(alice.address)).to.equal(600);
+            expect(await (await presale.preBuys(alice.address)).weiAmount).to.equal(600);
 
             await presale.connect(bob).buyTokens(600, bob.address);
             expect(await presale.weiRaised()).to.equal(1200);
@@ -318,8 +321,9 @@ describe("PresaleTest", () => {
             expect(await presale.individualCap()).to.equal(2000);
 
             await presale.connect(alice).buyTokens(2000, alice.address);
+
             expect(await presale.weiRaised()).to.equal(2000);
-            expect(await presale.contributions(alice.address)).to.equal(2000);
+            expect(await (await presale.preBuys(alice.address)).weiAmount).to.equal(2000);
         });
     });
 });
