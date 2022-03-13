@@ -37,12 +37,11 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
     // So, if you are using a rate of 1 with a ERC20Detailed token with 3 decimals called TOK
     // 1 wei will give you 1 unit, or 0.001 TOK.
     uint256 public rate;
-    
+
     uint256 public rateDecimals;
 
     // Amount of wei raised
     uint256 public weiRaised;
-
 
     /**
      * Event for token purchase logging
@@ -51,7 +50,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * @param value weis paid for purchase
      * @param amount amount of tokens purchased
      */
-    event TokensPurchased(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+    event TokensPrePurchased(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
 
     /**
      * @param _rate Number of token units a buyer gets per wei
@@ -62,7 +61,13 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * @param _wallet Address where collected funds will be forwarded to
      * @param _token Address of the token being sold
      */
-    constructor (uint256 _rate, uint256 _rateDecimals, address payable _wallet, IERC20 _token, IERC20 _busd) {
+    constructor(
+        uint256 _rate,
+        uint256 _rateDecimals,
+        address payable _wallet,
+        IERC20 _token,
+        IERC20 _busd
+    ) {
         require(_rate > 0, "Crowdsale: rate is 0");
         require(_wallet != address(0), "Crowdsale: wallet is the zero address");
         require(address(_token) != address(0), "Crowdsale: token is the zero address");
@@ -81,7 +86,7 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
      * another `nonReentrant` function.
      * @param beneficiary Recipient of the token purchase
      */
-    function buyTokens(uint _amount, address beneficiary) public nonReentrant {
+    function buyTokens(uint256 _amount, address beneficiary) public nonReentrant {
         _preValidatePurchase(beneficiary, _amount);
 
         // calculate token amount to be created
@@ -90,8 +95,8 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
         // update state
         weiRaised = weiRaised.add(_amount);
 
-        _processPurchase(beneficiary, tokens);
-        emit TokensPurchased(_msgSender(), beneficiary, _amount, tokens);
+        //_processPurchase(beneficiary, tokens);
+        emit TokensPrePurchased(_msgSender(), beneficiary, _amount, tokens);
 
         _updatePurchasingState(beneficiary, _amount);
 
@@ -164,9 +169,9 @@ abstract contract Crowdsale is Context, ReentrancyGuard {
     }
 
     /**
-     * @dev Determines how ETH is stored/forwarded on purchases.
+     * @dev Determines how BUSD is stored/forwarded on purchases.
      */
-    function _forwardFunds(uint amount, address beneficiary) internal {
+    function _forwardFunds(uint256 amount, address beneficiary) internal {
         busd.transferFrom(beneficiary, wallet, amount);
     }
 }

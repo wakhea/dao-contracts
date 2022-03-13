@@ -6,16 +6,27 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PlutusPresale is Crowdsale, Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     // Timed Crowdsale
     uint256 public openingTime;
     uint256 public closingTime;
+    uint256 public vestedTime;
+
+    uint256 public immutable VESTING_TIME_DECIMALS = 10000000;
 
     // Capped presale
     uint256 public cap;
 
     // Individually capped
-    mapping(address => uint256) public contributions;
+    struct PreBuy {
+        uint256 weiAmount;
+        uint256 plusAmount;
+    }
+
+    mapping(address => PreBuy) public preBuys;
+    uint256 public totalPlusToDistribute;
+
     uint256 public individualCap;
 
     /**
@@ -30,6 +41,11 @@ contract PlutusPresale is Crowdsale, Ownable {
      */
     modifier onlyWhileOpen() {
         require(isOpen(), "TimedCrowdsale: not open");
+        _;
+    }
+
+    modifier onlyWhileClosed() {
+        require(hasClosed(), "TimedCrowdsale: not closed");
         _;
     }
 
@@ -116,18 +132,50 @@ contract PlutusPresale is Crowdsale, Ownable {
         super._preValidatePurchase(beneficiary, weiAmount);
         require(weiRaised.add(weiAmount) <= cap, "CappedCrowdsale: cap exceeded");
         require(
-            contributions[beneficiary].add(weiAmount) <= individualCap,
+            preBuys[beneficiary].weiAmount.add(weiAmount) <= individualCap,
             "CappedCrowdsale: beneficiary's cap exceeded"
         );
     }
 
     /**
-     * @dev Extend parent behavior to update beneficiary contributions.
+     * @dev Extend parent behavior to update beneficiary preBuys.
      * @param beneficiary Token purchaser
      * @param weiAmount Amount of wei contributed
      */
     function _updatePurchasingState(address beneficiary, uint256 weiAmount) internal override {
         super._updatePurchasingState(beneficiary, weiAmount);
-        contributions[beneficiary] = contributions[beneficiary].add(weiAmount);
+        preBuys[beneficiary].weiAmount = preBuys[beneficiary].weiAmount.add(weiAmount);
+        totalPlusToDistribute = totalPlusToDistribute.add(_getTokenAmount(weiAmount));
+    }
+
+    function getPercentReleased() public view returns (uint256) {
+        // if the presale isn't finish
+        if (block.timestamp <= closingTime) {
+            return 0;
+        } else if (block.timestamp > closingTime.add(vestedTime)) {
+            // already 100% released
+            return VESTING_TIME_DECIMALS;
+        } else {
+            // not fully released
+            return block.timestamp.sub(closingTime).mul(VESTING_TIME_DECIMALS).div(vestedTime);
+        }
+    }
+
+    // allows pre-salers to redeem their plus over time (vestedTime) once the presale is close
+    function redeemPlus(address beneficiary) public onlyWhileClosed {
+        uint256 percentReleased = getPercentReleased();
+
+        uint256 totalPlusToClaim = _getTokenAmount(preBuys[beneficiary].weiAmount).mul(percentReleased).div(
+            VESTING_TIME_DECIMALS
+        );
+        uint256 plusToClaim = totalPlusToClaim.sub(preBuys[beneficiary].plusAmount);
+        preBuys[beneficiary].plusAmount = preBuys[beneficiary].plusAmount.add(plusToClaim);
+
+        token.safeTransfer(beneficiary, plusToClaim);
+    }
+
+    // Allows operator wallet to retreive the rgk that won't be distributed
+    function retreiveExcessPlus() external onlyWhileClosed onlyOwner {
+        token.safeTransfer(wallet, token.balanceOf(address(this)).sub(totalPlusToDistribute));
     }
 }
