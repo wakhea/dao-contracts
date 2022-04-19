@@ -77,7 +77,7 @@ contract PlutusPresale is Crowdsale, Ownable {
         require(_individualCap > 0, "CappedCrowdsale: individual cap is 0");
         individualCap = _individualCap;
 
-        require(_vestingStart > _closingTime, "Vesting start time is not before closing time");
+        require(_vestingStart >= _closingTime, "Vesting start time is not before closing time");
         vestingStart = _vestingStart;
         vestingTime = _vestingTime;
     }

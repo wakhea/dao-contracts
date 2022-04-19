@@ -14,7 +14,7 @@ import {
     PlutusPresale,
 } from "../../types";
 
-describe("PresaleTest", () => {
+describe.only("PresaleTest", () => {
     const LARGE_APPROVAL = "100000000000000000000000000000000";
     const START_DATE = 1893499200;
     const END_DATE = 1896177600;
@@ -63,7 +63,8 @@ describe("PresaleTest", () => {
                 END_DATE,
                 10000000000000,
                 1000000000000,
-                345600
+                345600,
+                END_DATE
             );
 
             expect(await presale.token()).to.equal(plus.address);
@@ -85,7 +86,8 @@ describe("PresaleTest", () => {
                 await closingTime.toNumber(),
                 100000000000000,
                 100000000000000,
-                345600
+                345600,
+                await closingTime.toNumber()
             );
 
             await busd.connect(alice).approve(presale.address, LARGE_APPROVAL);
@@ -120,7 +122,8 @@ describe("PresaleTest", () => {
                 await closingTime.toNumber(),
                 10000000000000,
                 1000000000000,
-                345600
+                345600,
+                await closingTime.toNumber()
             );
         });
 
@@ -188,7 +191,8 @@ describe("PresaleTest", () => {
                 await closingTime.toNumber(),
                 1000,
                 10000, 
-                345600
+                345600,
+                await closingTime.toNumber()
             );
             time.increase(time.duration.days(10));
 
@@ -268,7 +272,8 @@ describe("PresaleTest", () => {
                 await closingTime.toNumber(),
                 100000000,
                 1000,
-                345600
+                345600,
+                await closingTime.toNumber()
             );
 
             time.increase(time.duration.days(10));
@@ -342,7 +347,8 @@ describe("PresaleTest", () => {
                 await closingTime.toNumber(),
                 100000000,
                 100000000,
-                345600
+                345600,
+                await closingTime.toNumber()
             );
 
             time.increase(time.duration.days(10));
