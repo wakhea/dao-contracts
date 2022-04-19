@@ -11,6 +11,7 @@ contract PlutusPresale is Crowdsale, Ownable {
     // Timed Crowdsale
     uint256 public openingTime;
     uint256 public closingTime;
+    uint256 public vestingStart;
     uint256 public vestingTime;
 
     uint256 public immutable VESTING_TIME_DECIMALS = 10000000;
@@ -59,7 +60,8 @@ contract PlutusPresale is Crowdsale, Ownable {
         uint256 _closingTime,
         uint256 _cap,
         uint256 _individualCap,
-        uint256 _vestingTime
+        uint256 _vestingTime,
+        uint256 _vestingStart
     ) Crowdsale(_rate, _rateDecimals, _wallet, _token, _busd) {
         // solhint-disable-next-line not-rely-on-time
         require(_openingTime >= block.timestamp, "TimedCrowdsale: opening time is before current time");
@@ -75,6 +77,8 @@ contract PlutusPresale is Crowdsale, Ownable {
         require(_individualCap > 0, "CappedCrowdsale: individual cap is 0");
         individualCap = _individualCap;
 
+        require(_vestingStart > _closingTime, "Vesting start time is not before closing time");
+        vestingStart = _vestingStart;
         vestingTime = _vestingTime;
     }
 
@@ -126,6 +130,11 @@ contract PlutusPresale is Crowdsale, Ownable {
         individualCap = newIndividualCap;
     }
 
+    function setVestingStart(uint256 newVestingStart) external onlyOwner {
+        require(newVestingStart > block.timestamp, "Vesting time start should be after current date");
+        vestingStart = newVestingStart;
+    }
+
     /**
      * @dev Extend parent behavior requiring to be within contributing period.
      * @param beneficiary Token purchaser
@@ -152,20 +161,21 @@ contract PlutusPresale is Crowdsale, Ownable {
     }
 
     function getPercentReleased() public view returns (uint256) {
-        // if the presale isn't finish
-        if (block.timestamp <= closingTime) {
+        // if the presale is still open
+        if (block.timestamp <= vestingStart) {
             return 0;
-        } else if (block.timestamp > closingTime.add(vestingTime)) {
+        } else if (block.timestamp > vestingStart.add(vestingTime)) {
             // already 100% released
             return VESTING_TIME_DECIMALS;
         } else {
             // not fully released
-            return block.timestamp.sub(closingTime).mul(VESTING_TIME_DECIMALS).div(vestingTime);
+            return block.timestamp.sub(vestingStart).mul(VESTING_TIME_DECIMALS).div(vestingTime);
         }
     }
 
     // allows pre-salers to redeem their plus over time (vestingTime) once the presale is closed
     function redeemPlus(address beneficiary) public onlyWhileClosed {
+        require(block.timestamp >= vestingStart, "Vesting period has not started yet");
         uint256 percentReleased = getPercentReleased();
 
         uint256 totalPlusToClaim = _getTokenAmount(preBuys[beneficiary].weiAmount).mul(percentReleased).div(
