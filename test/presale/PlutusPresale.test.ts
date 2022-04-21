@@ -332,7 +332,7 @@ describe.only("PresaleTest", () => {
         });
     });
 
-    describe("Vesting time crowdsale", async () => {
+    describe.only("Vesting time crowdsale", async () => {
         beforeEach(async () => {
             openingTime = (await time.latest()).add(time.duration.weeks(1));
             closingTime = openingTime.add(time.duration.weeks(1));
@@ -348,7 +348,7 @@ describe.only("PresaleTest", () => {
                 100000000,
                 100000000,
                 345600,
-                await closingTime.toNumber()
+                await closingTime.add(time.duration.days(2)).toNumber()
             );
 
             time.increase(time.duration.days(10));
@@ -358,7 +358,7 @@ describe.only("PresaleTest", () => {
             await busd.connect(bob).approve(presale.address, 2000);
         });
 
-        it("should not allow redemption before if presale is open", async() => {
+        it("should not allow redemption if presale is open", async() => {
             await expect(presale.connect(alice).redeemPlus(alice.address)).to.be.revertedWith(
                 "TimedCrowdsale: not closed"
             );
@@ -368,13 +368,21 @@ describe.only("PresaleTest", () => {
             await expect(presale.connect(alice).retreiveExcessPlus()).to.be.revertedWith(
                 "TimedCrowdsale: not closed"
             );
-        })
+        });
 
         it("should not allow to retrieve excess PLUS if not owner", async() => {
-            time.increase(time.duration.days(5));
+            await time.increase(time.duration.days(4));
 
             await expect(presale.connect(alice).retreiveExcessPlus()).to.be.revertedWith(
                 "Ownable: caller is not the owner"
+            );
+        });
+
+        
+        it("should not allow to retrieve PLUS if before vesting start", async() => {
+            await time.increase(time.duration.days(5));
+            await expect(presale.connect(alice).redeemPlus(alice.address)).to.be.revertedWith(
+                "Vesting period has not started yet"
             );
         });
 
@@ -392,16 +400,16 @@ describe.only("PresaleTest", () => {
             expect(oldBalance.sub(newBalance).toNumber()).to.equal(amount);
 
             // 1 day after close
-            await time.increase(time.duration.days(5));
+            await time.increase(time.duration.days(8));
             
-            expect(await (await presale.getPercentReleased()).toNumber()).to.be.gte(2500000).and.lte(2501000);
+            expect(await (await presale.getPercentReleased()).toNumber()).to.be.gte(5000000).and.lte(5001000);
             expect(await (await presale.preBuys(alice.address)).plusAmountClaimed).to.equal(0);            
             
             await presale.connect(alice).redeemPlus(alice.address);
 
             let plusAmountClaimed = (await (await presale.preBuys(alice.address)).plusAmountClaimed);
-            expect(await plusAmountClaimed.toNumber()).to.equal(250);
-            expect(await plus.balanceOf(alice.address)).to.equal(250);
+            expect(await plusAmountClaimed.toNumber()).to.equal(500);
+            expect(await plus.balanceOf(alice.address)).to.equal(500);
             
             // After vesting period
             await time.increase(time.duration.days(5));
